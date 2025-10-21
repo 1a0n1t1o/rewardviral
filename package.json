@@ -6,7 +6,8 @@
 		"dev": "whop-proxy --command 'next dev --turbopack'",
 		"build": "next build",
 		"start": "next start",
-		"lint": "next lint"
+		"lint": "next lint",
+		"setup": "node setup.js"
 	},
 	"dependencies": {
 		"@vercel/functions": "^2.0.3",

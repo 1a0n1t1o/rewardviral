@@ -1,37 +1,95 @@
-This is a template for a whop app built in NextJS. Fork it and keep the parts you need for your app. 
+# Whop Next.js App Template
 
-# Whop NextJS App Template
+A beginner-friendly template for building Whop apps with Next.js, TypeScript, and Tailwind CSS.
 
-To run this project: 
+## 🎯 What's Included
 
-1. Install dependencies with: `pnpm i`
+- ✅ **Whop SDK Integration** - Pre-configured authentication and API access
+- ✅ **Modern UI** - Beautiful, responsive design with Tailwind CSS
+- ✅ **TypeScript** - Full type safety and better development experience
+- ✅ **Authentication** - Built-in Whop user authentication
+- ✅ **Webhooks** - Ready-to-use webhook endpoints
+- ✅ **Beginner-Friendly** - Clear documentation and setup guides
 
-2. Create a Whop App on your [whop developer dashboard](https://whop.com/dashboard/developer/), then go to the "Hosting" section and:
-	- Ensure the "Base URL" is set to the domain you intend to deploy the site on.
-	- Ensure the "App path" is set to `/experiences/[experienceId]`
-	- Ensure the "Dashboard path" is set to `/dashboard/[companyId]` 
-	- Ensure the "Discover path" is set to `/discover` 
+## 🚀 Quick Start
 
-3. Copy the environment variables from the `.env.development` into a `.env.local`. Ensure to use real values from the whop dashboard.
+**New to Whop apps?** Check out our [detailed setup guide](./SETUP.md) for step-by-step instructions!
 
-4. Go to a whop created in the same org as the app you created. Navigate to the tools section and add your app.
+### 1. Install Dependencies
+```bash
+# Using pnpm (recommended)
+pnpm install
 
-5. Run `pnpm dev` to start the dev server. Then in the top right of the window find a translucent settings icon. Select "localhost". The default port 3000 should work.
+# Or using npm
+npm install
+```
 
-## Deploying
+### 2. Set Up Environment Variables
+```bash
+# Copy the example environment file
+cp env.example .env
 
-1. Upload your fork / copy of this template to github. 
+# Edit .env with your Whop app credentials
+```
 
-2. Go to [Vercel](https://vercel.com/new) and link the repository. Deploy your application with the environment variables from your `.env.local`
+### 3. Run Development Server
+```bash
+pnpm dev
+```
 
-3. If necessary update you "Base Domain" and webhook callback urls on the app settings page on the whop dashboard.
+## 📚 Documentation
 
-## Troubleshooting
+- **[Setup Guide](./SETUP.md)** - Complete beginner-friendly setup instructions
+- **[Whop Documentation](https://dev.whop.com)** - Official Whop developer docs
+- **[Next.js Documentation](https://nextjs.org/docs)** - Next.js framework docs
 
-**App not loading properly?** Make sure to set the "App path" in your Whop developer dashboard. The placeholder text in the UI does not mean it's set - you must explicitly enter `/experiences/[experienceId]` (or your chosen path name)
-a
+## 🛠 Development
 
-**Make sure to add env.local** Make sure to get the real app environment vairables from your whop dashboard and set them in .env.local
+```bash
+# Start development server
+pnpm dev
 
+# Build for production
+pnpm build
 
-For more info, see our docs at https://dev.whop.com/introduction
+# Start production server
+pnpm start
+
+# Run linter
+pnpm lint
+```
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+1. Push to GitHub
+2. Connect to [Vercel](https://vercel.com)
+3. Add environment variables
+4. Deploy!
+
+### Other Platforms
+Deploy to any platform that supports Next.js. Just ensure your environment variables are set.
+
+## 🔧 Configuration
+
+### Required Environment Variables
+- `NEXT_PUBLIC_WHOP_APP_ID` - Your Whop app ID
+- `WHOP_API_KEY` - Your Whop API key
+- `NEXT_PUBLIC_WHOP_AGENT_USER_ID` - Agent user ID (optional)
+- `NEXT_PUBLIC_WHOP_COMPANY_ID` - Company ID (optional)
+
+### Whop Dashboard Settings
+- **Base URL**: Your deployment domain
+- **App path**: `/experiences/[experienceId]`
+- **Dashboard path**: `/dashboard/[companyId]`
+- **Discover path**: `/discover`
+
+## 🆘 Troubleshooting
+
+**App not loading?** Make sure you've set the correct paths in your Whop dashboard and environment variables.
+
+**Need help?** Check out our [setup guide](./SETUP.md) or visit the [Whop Documentation](https://dev.whop.com).
+
+## 📄 License
+
+This template is provided as-is for building Whop applications.
