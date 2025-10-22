@@ -28,7 +28,7 @@
 		"typescript": "^5"
 	},
 	"engines": {
-		"node": ">=18.20.3 <19"
+		"node": "22.x"
 	},
 	"packageManager": "npm@10.7.0"
 }
