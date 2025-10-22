@@ -1,50 +1,67 @@
-// app/api/access/status/route.ts
-import { NextResponse } from 'next/server';
-import { getWhopUserId, whopSdk } from '@/lib/whop-server';
-import { isStaffLevel } from '@/lib/rbac';
+import { NextResponse } from "next/server";
+import { getWhopUserId, whopSdk } from "@/lib/whop-server";
 
+type AccessJson = {
+  authed: boolean;
+  hasAccess: boolean;
+  accessLevel?: "staff" | "member" | "no_access";
+  userId?: string;
+  error?: string;
+  warn?: string;
+};
+
+// GET /api/access/status
 export async function GET() {
   try {
-    const userId = await getWhopUserId().catch(() => null);
-
+    // 1) Identify user from Whop iframe headers
+    const userId = getWhopUserId();
     if (!userId) {
-      return NextResponse.json({ authed: false, hasAccess: false });
+      const body: AccessJson = {
+        authed: false,
+        hasAccess: false,
+      };
+      return NextResponse.json(body, { status: 200 });
     }
 
-    // Your existing access check:
+    // 2) Access Pass id from env (public or private is fine, we just need a consistent source)
     const accessPassId = process.env.NEXT_PUBLIC_PREMIUM_ACCESS_PASS_ID;
     if (!accessPassId) {
-      return NextResponse.json({
+      const body: AccessJson = {
         authed: true,
         hasAccess: false,
-        warn: 'Missing NEXT_PUBLIC_PREMIUM_ACCESS_PASS_ID',
-      });
+        userId,
+        warn: "Missing NEXT_PUBLIC_PREMIUM_ACCESS_PASS_ID",
+      };
+      return NextResponse.json(body, { status: 200 });
     }
 
-    const res = await whopSdk.access.checkIfUserHasAccessToAccessPass({
+    // 3) Ask Whop if this user has access to the pass
+    const result = await whopSdk.access.checkIfUserHasAccessToAccessPass({
+      userId,
       accessPassId,
-      userId,
     });
 
-    // Try to read an access level returned by your SDK (optional property)
-    const accessLevel =
-      // @ts-ignore – some SDKs include this nested
-      res?.accessLevel ||
-      // older shape you've logged from /debug previously:
-      // res?.data?.accessLevel ||
-      (res?.hasAccess ? 'member' : 'no_access');
+    const accessLevel: AccessJson["accessLevel"] =
+      result?.hasAccess ? (result?.isStaff ? "staff" : "member") : "no_access";
 
-    return NextResponse.json({
+    const body: AccessJson = {
       authed: true,
-      hasAccess: !!res?.hasAccess,
-      userId,
+      hasAccess: !!result?.hasAccess,
       accessLevel,
-      isStaff: isStaffLevel(accessLevel),
-    });
-  } catch (e: any) {
-    return NextResponse.json(
-      { authed: false, hasAccess: false, error: e?.message || 'access check failed' },
-      { status: 500 }
-    );
+      userId,
+    };
+
+    return NextResponse.json(body, { status: 200 });
+  } catch (e: unknown) {
+    const msg =
+      e && typeof e === "object" && "message" in e
+        ? String((e as any).message)
+        : "access check failed";
+    const body: AccessJson = {
+      authed: false,
+      hasAccess: false,
+      error: msg,
+    };
+    return NextResponse.json(body, { status: 500 });
   }
 }
