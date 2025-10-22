@@ -1,82 +1,38 @@
-import { headers as nextHeaders } from "next/headers";
+import { headers } from "next/headers";
+import { WhopServerSdk } from "@whop/react";
+
+// Server-side SDK (requires API key)
+export const whopSdk = new WhopServerSdk(process.env.WHOP_API_KEY!);
 
 /**
- * Compatibility wrapper for @whop/api across versions.
- * Some versions export a class (WhopSDK/WhopServerSdk) with { apiKey } or (apiKey),
- * others export a factory (createWhopServerSdk). We try them in order and memoize.
- * Typed as `any` intentionally to avoid breaking on type shape changes.
+ * Attempt to resolve the current user id. Works in both modes:
+ *  - Proxy mode (apps.whop.com injects x-whop-* headers)
+ *  - Direct iframe mode (client sends Authorization: Bearer <userToken>)
  */
-let _sdk: any | null = null;
+export async function getWhopUserIdFromAnySource(reqHeaders?: Headers): Promise<string | null> {
+  const h = reqHeaders ?? (await headers());
 
-function initWhopSdk(): any {
-  if (_sdk) return _sdk;
-
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const mod: any = require("@whop/api");
-
-  // Try common exports by priority:
-  const candidates = [
-    mod.WhopSDK,
-    mod.WhopServerSdk,
-    mod.default,
-    mod.createWhopServerSdk,
-  ].filter(Boolean);
-
-  const apiKey = process.env.WHOP_API_KEY;
-
-  for (const C of candidates) {
-    try {
-      // Try constructor with options object
-      if (typeof C === "function") {
-        try {
-          _sdk = new C({ apiKey });
-          return _sdk;
-        } catch {}
-        // Try constructor with single string arg
-        try {
-          _sdk = new C(apiKey);
-          return _sdk;
-        } catch {}
-      }
-      // Try factory style with options object
-      if (typeof C === "function") {
-        try {
-          _sdk = C({ apiKey });
-          if (_sdk) return _sdk;
-        } catch {}
-      }
-    } catch {
-      // ignore and continue
-    }
-  }
-
-  throw new Error(
-    "Unable to initialize Whop SDK. Check @whop/api version and WHOP_API_KEY."
-  );
-}
-
-/** Export a proxy so callers can do `whopSdk.xyz()` regardless of init shape. */
-export const whopSdk: any = new Proxy(
-  {},
-  {
-    get(_target, prop) {
-      const s = initWhopSdk();
-      return s[prop as keyof typeof s];
-    },
-  }
-);
-
-/** Resolve current Whop userId from request headers (must be opened from Whop). */
-export async function getWhopUserId(): Promise<string> {
-  const h = await nextHeaders();
-  // Prefer verified token if available; otherwise fall back to header.
+  // 1) Try proxy-injected headers first (this path works when using Whop proxy)
   try {
     const { userId } = await whopSdk.verifyUserToken(h);
-    if (userId) return userId as string;
+    if (userId) return userId;
   } catch {
-    // fall through to raw header
+    // fall through
   }
-  const raw = h.get("x-whop-user-id");
-  if (!raw) throw new Error("Whop user header missing");
-  return raw;
+
+  // 2) Fallback: try Authorization: Bearer <token>
+  try {
+    const auth = h.get("authorization") || "";
+    const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7) : null;
+    if (token) {
+      const { userId } = await whopSdk.verifyUserToken({ "x-whop-user-token": token } as any);
+      return userId ?? null;
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
 }
+
+export default null;
