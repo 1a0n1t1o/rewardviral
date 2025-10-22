@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 export default function Dashboard() {
-  const [status, setStatus] = useState<null | { role: string }>(null);
+  const [status, setStatus] = useState<null | { hasAccess: boolean; accessLevel: string }>(null);
 
   useEffect(() => {
     fetch("/api/access/status")
@@ -13,7 +13,11 @@ export default function Dashboard() {
 
   if (!status) return <p>Loading...</p>;
 
-  if (status.role === "staff") {
+  if (!status.hasAccess) {
+    return <p>You don't have access yet...</p>;
+  }
+
+  if (status.accessLevel === "staff") {
     return (
       <div className="p-8">
         <h1 className="text-2xl font-bold">Welcome, Staff</h1>
@@ -29,7 +33,7 @@ export default function Dashboard() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold">Welcome, Member</h1>
-      <p className="mt-2">You don't have access to staff tools.</p>
+      <p className="mt-2">You have access to member features.</p>
     </div>
   );
 }
