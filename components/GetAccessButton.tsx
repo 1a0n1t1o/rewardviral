@@ -3,9 +3,22 @@ import { useState } from "react";
 import { useIframeSdk } from "@whop/react";
 
 export default function GetAccessButton() {
-  const iframeSdk = useIframeSdk();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sdkAvailable, setSdkAvailable] = useState<boolean | null>(null);
+
+  // Safely get iframe SDK with feature detection
+  let iframeSdk: any = null;
+  try {
+    iframeSdk = useIframeSdk();
+    if (sdkAvailable === null) {
+      setSdkAvailable(!!iframeSdk && typeof iframeSdk === "object");
+    }
+  } catch (err) {
+    if (sdkAvailable === null) {
+      setSdkAvailable(false);
+    }
+  }
 
   async function handlePurchase() {
     try {
@@ -15,6 +28,12 @@ export default function GetAccessButton() {
       const planId = process.env.NEXT_PUBLIC_PREMIUM_PLAN_ID;
       if (!planId) {
         setMsg("Missing NEXT_PUBLIC_PREMIUM_PLAN_ID");
+        return;
+      }
+
+      // Check if SDK is available before attempting purchase
+      if (!iframeSdk || !iframeSdk.inAppPurchase) {
+        setMsg("Can't load purchase modal. Please allow apps.whop.com or try another browser.");
         return;
       }
 
@@ -46,18 +65,24 @@ export default function GetAccessButton() {
     <div style={{ display: "grid", gap: 6 }}>
       <button
         onClick={handlePurchase}
-        disabled={loading}
+        disabled={loading || !sdkAvailable}
         style={{
           padding: "10px 16px",
           borderRadius: 8,
           border: "1px solid #333",
           fontWeight: 600,
           background: "transparent",
-          cursor: loading ? "not-allowed" : "pointer",
+          cursor: loading || !sdkAvailable ? "not-allowed" : "pointer",
+          opacity: !sdkAvailable ? 0.6 : 1,
         }}
       >
         {loading ? "Processing…" : "Get Access"}
       </button>
+      {!sdkAvailable && (
+        <p style={{ fontSize: 12, color: "#dc2626" }}>
+          Can't load purchase modal. Please allow apps.whop.com or try another browser.
+        </p>
+      )}
       {msg && <p style={{ fontSize: 12, color: "#555" }}>{msg}</p>}
     </div>
   );

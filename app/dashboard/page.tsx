@@ -55,6 +55,15 @@ export default function DashboardPage() {
       <div style={{ width: 520, maxWidth: "100%", display: "grid", gap: 16 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800 }}>Welcome to Dashboard</h1>
 
+        {/* Debug info (dev only) */}
+        {process.env.NODE_ENV !== "production" && (
+          <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
+            Debug: iframe={typeof window !== "undefined" ? window.self !== window.top : "unknown"}, 
+            whop-script={typeof document !== "undefined" ? 
+              (document.querySelector('script[src*="apps.whop.com"]') ? "loaded" : "not found") : "unknown"}
+          </div>
+        )}
+
         {/* Debug panel (remove later): shows authed/hasAccess when opened inside Whop */}
         <div style={{ marginBottom: 16 }}>
           <SafeSection>
