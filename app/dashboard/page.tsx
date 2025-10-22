@@ -1,9 +1,54 @@
+"use client";
 import Link from "next/link";
-import { getAccessFromHeaders, type AccessLevel } from "@/lib/whop";
+import { useEffect, useState } from "react";
 
-export default async function DashboardPage() {
-  const status = await getAccessFromHeaders();
+type AccessStatus = {
+  authed: boolean;
+  hasAccess: boolean;
+  hasAccessLevel: "staff" | "member" | "no_access";
+  userId?: string | null;
+};
+
+export default function DashboardPage() {
+  const [status, setStatus] = useState<AccessStatus | null>(null);
+  const [loading, setLoading] = useState(true);
   const passId = process.env.NEXT_PUBLIC_PREMIUM_ACCESS_PASS_ID;
+
+  useEffect(() => {
+    fetch("/api/access/status")
+      .then((res) => res.json())
+      .then((data) => {
+        setStatus(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setStatus({
+          authed: false,
+          hasAccess: false,
+          hasAccessLevel: "no_access",
+          userId: null,
+        });
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-3xl p-6">
+        <h1 className="text-2xl font-semibold mb-6">Welcome to Dashboard</h1>
+        <p className="text-sm text-gray-600">Loading...</p>
+      </main>
+    );
+  }
+
+  if (!status) {
+    return (
+      <main className="mx-auto max-w-3xl p-6">
+        <h1 className="text-2xl font-semibold mb-6">Welcome to Dashboard</h1>
+        <p className="text-sm text-red-600">Error loading access status</p>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-3xl p-6">
@@ -17,10 +62,10 @@ function RoleBlock({
   status,
   passId,
 }: {
-  status: { authed: boolean; accessLevel: AccessLevel; userId: string | null };
+  status: AccessStatus;
   passId?: string;
 }) {
-  if (status.accessLevel === "staff") {
+  if (status.hasAccessLevel === "staff") {
     return (
       <section className="rounded border p-4">
         <p className="mb-2 font-medium">
@@ -40,7 +85,7 @@ function RoleBlock({
     );
   }
 
-  if (status.accessLevel === "member") {
+  if (status.hasAccessLevel === "member") {
     return (
       <section className="rounded border p-4">
         <p className="mb-2 font-medium">Access Granted</p>
