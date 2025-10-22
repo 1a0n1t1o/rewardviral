@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useIframeSdk } from "@whop/react";
 
 /**
@@ -29,10 +30,20 @@ function getReceiptId(data: InAppPurchaseOK["data"] | undefined) {
   return (data as any).receiptId ?? (data as any).receipt_id ?? undefined;
 }
 
-export default function GetAccessButton() {
+interface GetAccessButtonProps {
+  variant?: "solid" | "ghost";
+}
+
+export default function GetAccessButton({ variant = "solid" }: GetAccessButtonProps) {
   const iframeSdk = useIframeSdk();
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string>("");
+
+  // Don't render if plan ID is not set
+  if (!process.env.NEXT_PUBLIC_PREMIUM_PLAN_ID) {
+    return null;
+  }
 
   const handlePurchase = async () => {
     if (!iframeSdk) return;
@@ -50,6 +61,8 @@ export default function GetAccessButton() {
         setMessage(
           receiptId ? `Success! Receipt: ${receiptId}` : "Success! Purchase complete."
         );
+        // Soft refresh after purchase
+        setTimeout(() => router.refresh(), 800);
       } else {
         setMessage(res.error || "Purchase failed.");
       }
@@ -61,14 +74,27 @@ export default function GetAccessButton() {
     }
   };
 
+  const baseClasses = "rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50";
+  const variantClasses = variant === "ghost" 
+    ? "border border-gray-300 hover:bg-gray-50" 
+    : "bg-blue-600 text-white hover:bg-blue-700";
+
   return (
     <div className="flex flex-col items-start gap-2">
       <button
         onClick={handlePurchase}
         disabled={!iframeSdk || submitting}
-        className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        className={`${baseClasses} ${variantClasses}`}
+        aria-live="polite"
       >
-        {submitting ? "Processing…" : "Get Access"}
+        {submitting ? (
+          <span className="flex items-center gap-2">
+            <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            Processing…
+          </span>
+        ) : (
+          "Get Access"
+        )}
       </button>
       {message ? <p className="text-sm text-gray-600">{message}</p> : null}
     </div>

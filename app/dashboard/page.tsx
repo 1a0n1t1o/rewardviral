@@ -2,7 +2,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { getWhopDisplayName } from '@/lib/whop-sdk';
+import GetAccessButton from '@/components/GetAccessButton';
+import StaffBadge from '@/components/StaffBadge';
 
 type AccessStatus = {
   authed: boolean;
@@ -13,6 +15,12 @@ type AccessStatus = {
   error?: string;
   warn?: string;
 };
+
+// Testing notes:
+// - Staff user should see: Access Granted + Staff badge + "Staff tools" box + comment form.
+// - Non-staff with access: Access Granted (no badge) + comment form.
+// - No access: Short message + Get Access button (if plan id is present).
+// - After purchase success, page refresh should show Access Granted state.
 
 export default function DashboardPage() {
   const [status, setStatus] = useState<AccessStatus>();
@@ -26,7 +34,7 @@ export default function DashboardPage() {
         const j = (await r.json()) as AccessStatus;
         setStatus(j);
       } catch (e) {
-        setStatus({ authed: false, hasAccess: false, error: 'Failed to load status' });
+        setStatus({ authed: false, hasAccess: false, error: 'Could not verify access. Please try again.' });
       } finally {
         setLoading(false);
       }
@@ -34,15 +42,25 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return <div style={{ padding: 24 }}>Loading…</div>;
+    return (
+      <div className="mx-auto max-w-3xl p-8">
+        <h1 className="text-3xl font-bold mb-6">Welcome to Dashboard</h1>
+        <div className="rounded border p-4">
+          <p className="opacity-70">Loading…</p>
+        </div>
+      </div>
+    );
   }
 
   if (!status?.authed) {
     return (
-      <div style={{ padding: 24 }}>
-        <h2>Welcome to Dashboard</h2>
-        <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 8, maxWidth: 720 }}>
-          <strong>Open from Whop:</strong> You must open this app from Whop so we can identify you.
+      <div className="mx-auto max-w-3xl p-8">
+        <h1 className="text-3xl font-bold mb-6">Welcome to Dashboard</h1>
+        <div className="rounded border p-4">
+          <p className="font-medium">Open from Whop</p>
+          <p className="opacity-80 text-sm">
+            You must open this app from Whop so we can identify you.
+          </p>
         </div>
       </div>
     );
@@ -50,103 +68,74 @@ export default function DashboardPage() {
 
   if (!status.hasAccess) {
     return (
-      <div style={{ padding: 24 }}>
-        <h2>Welcome to Dashboard</h2>
-        <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 8, maxWidth: 720 }}>
-          <p style={{ marginBottom: 12 }}>
-            You don't have access yet. If a "Get Access" button is available below, use it to
-            purchase. Otherwise contact support.
-          </p>
-          {/* Render your existing GetAccessButton if present in your project */}
-          {/* <GetAccessButton experienceId="..." /> */}
+      <div className="mx-auto max-w-3xl p-8">
+        <h1 className="text-3xl font-bold mb-6">Welcome to Dashboard</h1>
+        <div className="rounded border p-4 space-y-3">
+          <div>
+            <p className="font-medium">No access yet</p>
+            <p className="opacity-80 text-sm">
+              Purchase the pass to unlock the dashboard.
+            </p>
+            {status.warn && <p className="text-yellow-700 text-sm mt-1">{status.warn}</p>}
+          </div>
+          <GetAccessButton />
         </div>
       </div>
     );
   }
 
-  // has access – branch on role
-  const roleBadge = status.isStaff ? 'Staff' : 'Member';
+  // Has access - show role-based UI
+  const displayName = getWhopDisplayName({ 
+    id: status.userId || 'unknown', 
+    username: null, 
+    name: null 
+  });
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2>Welcome to Dashboard</h2>
+    <div className="mx-auto max-w-3xl p-8">
+      <h1 className="text-3xl font-bold mb-6">Welcome to Dashboard</h1>
 
-      <div
-        style={{
-          border: '1px solid #ddd',
-          padding: 16,
-          borderRadius: 8,
-          maxWidth: 900,
-          display: 'grid',
-          gap: 12,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-          <span style={{ fontWeight: 600 }}>Access Granted</span>
-          <span
-            style={{
-              fontSize: 12,
-              padding: '2px 8px',
-              borderRadius: 999,
-              background: status.isStaff ? '#e8f5e9' : '#e3f2fd',
-              border: `1px solid ${status.isStaff ? '#4caf50' : '#2196f3'}`,
-              color: status.isStaff ? '#2e7d32' : '#1565c0',
-            }}
-          >
-            {roleBadge}
-          </span>
+      <div className="rounded border p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold">Access Granted</h2>
+          {status.isStaff && <StaffBadge />}
         </div>
 
-        <div style={{ color: '#555' }}>User: {status.userId}</div>
+        <p className="text-sm text-gray-600">User: {displayName}</p>
 
         {status.isStaff && (
-          <section
-            style={{
-              border: '1px dashed #bbb',
-              borderRadius: 8,
-              padding: 12,
-              background: '#fafafa',
-            }}
-          >
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>Staff tools</div>
-            <ul style={{ margin: 0, paddingInlineStart: 18 }}>
-              <li>See member submissions (coming soon)</li>
-              <li>Moderation actions (coming soon)</li>
-              <li>Export data (coming soon)</li>
+          <div className="rounded border border-dashed border-gray-300 p-3 bg-gray-50">
+            <h3 className="font-medium text-sm mb-2">Staff tools</h3>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• See member submissions (coming soon)</li>
+              <li>• Moderation actions (coming soon)</li>
+              <li>• Export data (coming soon)</li>
             </ul>
-          </section>
+          </div>
         )}
 
-        <section>
-          <label htmlFor="comment" style={{ display: 'block', fontWeight: 600, marginBottom: 6 }}>
+        <div className="space-y-2">
+          <label htmlFor="comment" className="block font-medium text-sm">
             Write a comment…
           </label>
           <textarea
             id="comment"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            rows={5}
-            style={{ width: '100%', maxWidth: 900 }}
+            rows={4}
+            className="w-full rounded border p-2 text-sm"
             placeholder="Say hello…"
           />
-          <div style={{ marginTop: 8 }}>
-            <button
-              onClick={() => {
-                // Keep it local for now (no backend). You can wire to an API later.
-                setComment('');
-                alert('Submitted (demo).');
-              }}
-              style={{
-                padding: '6px 12px',
-                border: '1px solid #333',
-                borderRadius: 6,
-                background: '#fff',
-              }}
-            >
-              Submit
-            </button>
-          </div>
-        </section>
+          <button
+            onClick={() => {
+              setComment('');
+              alert('Submitted (demo).');
+            }}
+            className="rounded border px-3 py-1 text-sm hover:bg-gray-50"
+          >
+            Submit
+          </button>
+        </div>
       </div>
     </div>
   );

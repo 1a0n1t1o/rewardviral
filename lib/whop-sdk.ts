@@ -23,3 +23,18 @@ export async function getWhopUserId(): Promise<string | null> {
     return null;
   }
 }
+
+export type WhopUser = {
+  id: string;
+  username?: string | null;
+  name?: string | null;
+};
+
+/**
+ * Format user display name from Whop user data.
+ * Returns name || username || id (skipping undefined values).
+ */
+export function getWhopDisplayName(u: WhopUser | null): string {
+  if (!u) return "Unknown";
+  return u.name || u.username || u.id;
+}
