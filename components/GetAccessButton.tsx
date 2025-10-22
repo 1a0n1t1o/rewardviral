@@ -12,9 +12,13 @@ export default function GetAccessButton() {
       setLoading(true);
       setMsg(null);
 
-      const res = await iframeSdk.inAppPurchase({
-        planId: process.env.NEXT_PUBLIC_PREMIUM_PLAN_ID!,
-      });
+      const planId = process.env.NEXT_PUBLIC_PREMIUM_PLAN_ID;
+      if (!planId) {
+        setMsg("Missing NEXT_PUBLIC_PREMIUM_PLAN_ID");
+        return;
+      }
+
+      const res = await iframeSdk.inAppPurchase({ planId });
 
       if (res.status === "ok") {
         setMsg(`Success! Receipt: ${res.data.receipt_id}`);
