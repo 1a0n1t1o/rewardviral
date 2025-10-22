@@ -9,8 +9,8 @@ export type AccessStatus = { authed: boolean; accessLevel: AccessLevel; userId: 
  * - Member: any other x-whop-user-id
  * - No access: no x-whop-user-id (not opened from Whop)
  */
-export function getAccessFromHeaders(): AccessStatus {
-  const h = headers();
+export async function getAccessFromHeaders(): Promise<AccessStatus> {
+  const h = await headers();
   const userId = h.get("x-whop-user-id");
 
   if (!userId) {

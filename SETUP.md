@@ -57,8 +57,8 @@ pnpm dev
 
 ## 🔧 Key Features
 
-- **Authentication**: Built-in Whop authentication using `@whop/react`
-- **SDK Integration**: Pre-configured Whop SDK for API calls
+- **Authentication**: Header-based authentication using `x-whop-user-id`
+- **RBAC System**: Simple role-based access control (staff/member/no_access)
 - **Responsive Design**: Modern UI with Tailwind CSS
 - **TypeScript**: Full TypeScript support
 - **Webhooks**: Ready-to-use webhook endpoints

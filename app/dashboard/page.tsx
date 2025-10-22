@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getAccessFromHeaders, type AccessLevel } from "@/lib/whop";
 
-export default function DashboardPage() {
-  const status = getAccessFromHeaders();
+export default async function DashboardPage() {
+  const status = await getAccessFromHeaders();
   const passId = process.env.NEXT_PUBLIC_PREMIUM_ACCESS_PASS_ID;
 
   return (

@@ -3,7 +3,7 @@ import { getAccessFromHeaders } from "@/lib/whop";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  const status = getAccessFromHeaders();
+export async function GET() {
+  const status = await getAccessFromHeaders();
   return NextResponse.json(status, { status: 200 });
 }
