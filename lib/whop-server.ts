@@ -5,7 +5,6 @@ import { WhopServerSdk } from "@whop/api";
 const apiKey = process.env.WHOP_API_KEY!;
 export const whopSdk = new WhopServerSdk({ apiKey: apiKey }); // if our SDK is a factory, call the factory instead
 
-/** Return current Whop user id from request headers (null if not inside Whop). */
 export function getWhopUserId(): string | null {
   const h = nextHeaders();
   const id =
@@ -15,7 +14,6 @@ export function getWhopUserId(): string | null {
   return id && id !== "null" ? id : null;
 }
 
-/** Convenience: get a few whop headers at once. */
 export function getWhopHeaders() {
   const h = nextHeaders();
   return {
