@@ -1,9 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { headers } from 'next/headers';
 
-export const dynamic = "force-dynamic";
-
-export async function GET(req: NextRequest) {
-  const headersObj: Record<string, string> = {};
-  req.headers.forEach((v, k) => (headersObj[k] = v));
-  return NextResponse.json(headersObj, { status: 200 });
+export async function GET() {
+  const h = headers();
+  const obj = Object.fromEntries(h.entries());
+  return new Response(JSON.stringify(obj, null, 2), {
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+    },
+  });
 }

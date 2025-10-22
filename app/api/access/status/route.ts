@@ -1,17 +1,31 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getWhopUserId } from "@/lib/whop";
-import { roleForUser } from "@/lib/rbac";
+import { headers } from 'next/headers';
+import { getCachedRole, setCachedRole } from '@/lib/role-cache';
+import { resolveRoleFromWhop } from '@/lib/whop-check';
 
-export async function GET(req: NextRequest) {
-  const userId = getWhopUserId(req);
-  const role = roleForUser(userId);
+type Role = 'no_access' | 'member' | 'staff';
 
-  const payload = {
-    authed: !!userId,                     // did we resolve *a* user id?
-    hasAccess: role !== "no_access",
+export async function GET() {
+  const h = headers();
+  const userId = h.get('x-whop-user-id');
+
+  if (!userId) {
+    return Response.json({
+      authed: false,
+      hasAccess: false,
+      hasAccessLevel: 'no_access',
+    });
+  }
+
+  let role: Role | null = getCachedRole(userId);
+  if (!role) {
+    role = await resolveRoleFromWhop(userId);
+    setCachedRole(userId, role);
+  }
+
+  return Response.json({
+    authed: true,
+    hasAccess: role !== 'no_access',
     hasAccessLevel: role,
-    userId: userId ?? null,
-  };
-
-  return NextResponse.json(payload);
+    userId,
+  });
 }
