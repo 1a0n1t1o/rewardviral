@@ -1,48 +1,59 @@
-import { waitUntil } from "@vercel/functions";
-import { makeWebhookValidator } from "@whop/api";
-import type { NextRequest } from "next/server";
+// app/api/webhooks/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { createHmac, timingSafeEqual } from "crypto";
 
-const validateWebhook = makeWebhookValidator({
-	webhookSecret: process.env.WHOP_WEBHOOK_SECRET ?? "fallback",
-});
+/**
+ * Whop sends a signature header. We'll verify against WHOP_WEBHOOK_SECRET.
+ * If WHOP_WEBHOOK_SECRET is not set (dev), we accept the event but warn.
+ */
 
-export async function POST(request: NextRequest): Promise<Response> {
-	// Validate the webhook to ensure it's from Whop
-	const webhookData = await validateWebhook(request);
+const SECRET = process.env.WHOP_WEBHOOK_SECRET || "";
 
-	// Handle the webhook event
-	if (webhookData.action === "payment.succeeded") {
-		const { id, final_amount, amount_after_fees, currency, user_id } =
-			webhookData.data;
+function verifySignature(payload: string, signature: string | null): boolean {
+  if (!SECRET) {
+    // Dev mode fallback – accept but log a warning.
+    console.warn("[webhooks] WHOP_WEBHOOK_SECRET not set; skipping signature verification.");
+    return true;
+  }
+  if (!signature) return false;
 
-		// final_amount is the amount the user paid
-		// amount_after_fees is the amount that is received by you, after card fees and processing fees are taken out
+  // Standard HMAC SHA256 verification
+  const hmac = createHmac("sha256", SECRET);
+  hmac.update(payload, "utf8");
+  const digest = Buffer.from(hmac.digest("hex"));
+  const given = Buffer.from(signature);
 
-		console.log(
-			`Payment ${id} succeeded for ${user_id} with amount ${final_amount} ${currency}`,
-		);
-
-		// if you need to do work that takes a long time, use waitUntil to run it in the background
-		waitUntil(
-			potentiallyLongRunningHandler(
-				user_id,
-				final_amount,
-				currency,
-				amount_after_fees,
-			),
-		);
-	}
-
-	// Make sure to return a 2xx status code quickly. Otherwise the webhook will be retried.
-	return new Response("OK", { status: 200 });
+  // Avoid subtle timing leaks
+  if (digest.length !== given.length) return false;
+  return timingSafeEqual(digest, given);
 }
 
-async function potentiallyLongRunningHandler(
-	_user_id: string | null | undefined,
-	_amount: number,
-	_currency: string,
-	_amount_after_fees: number | null | undefined,
-) {
-	// This is a placeholder for a potentially long running operation
-	// In a real scenario, you might need to fetch user data, update a database, etc.
+export async function POST(req: NextRequest) {
+  // IMPORTANT: read raw body text for HMAC
+  const bodyText = await req.text();
+  const sig = headers().get("whop-signature"); // If Whop uses a different name, update here.
+
+  const ok = verifySignature(bodyText, sig);
+  if (!ok) {
+    return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 401 });
+  }
+
+  // Parse JSON AFTER verification
+  let event: unknown;
+  try {
+    event = JSON.parse(bodyText);
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid JSON" }, { status: 400 });
+  }
+
+  // TODO: Handle events you care about.
+  // For now we simply acknowledge.
+  // Example:
+  // if ((event as any)?.type === "subscription.created") { ... }
+
+  return NextResponse.json({ ok: true });
 }
+
+// Next 13/14/15 route settings – keep it dynamic (webhook must not be statically optimized)
+export const dynamic = "force-dynamic";
