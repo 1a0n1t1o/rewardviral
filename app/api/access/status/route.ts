@@ -4,12 +4,9 @@ import { resolveRoleFromWhop } from '@/lib/whop-check';
 
 type Role = 'no_access' | 'member' | 'staff';
 
-// Ensure this API route is always dynamic and never statically cached
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  // In this project, `headers()` is typed as Promise<ReadonlyHeaders>.
-  // Await it to satisfy TS and the Vercel build.
   const h = await headers();
   const userId = h.get('x-whop-user-id');
 
