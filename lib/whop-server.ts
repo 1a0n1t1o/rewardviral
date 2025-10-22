@@ -1,6 +1,6 @@
 import "server-only";
 import { headers as nextHeaders } from "next/headers";
-import { WhopServerSdk } from "@whop/api"; // keep the import that matches our installed version
+import { WhopServerSdk } from "@whop/sdk";
 
 export const whopSdk = WhopServerSdk({ apiKey: process.env.WHOP_API_KEY! });
 
