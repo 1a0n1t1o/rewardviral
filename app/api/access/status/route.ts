@@ -1,25 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+import { getWhopUserId } from "@/lib/whop";
+import { roleForUser } from "@/lib/rbac";
 
-const STAFF_ID = process.env.NEXT_PUBLIC_WHOP_AGENT_USER_ID ?? '';
+export async function GET(req: NextRequest) {
+  const userId = getWhopUserId(req);
+  const role = roleForUser(userId);
 
-export async function GET(req: Request) {
-  // Read from the request headers (no next/headers needed)
-  const userId = req.headers.get('x-whop-user-id');
+  const payload = {
+    authed: !!userId,                     // did we resolve *a* user id?
+    hasAccess: role !== "no_access",
+    hasAccessLevel: role,
+    userId: userId ?? null,
+  };
 
-  if (!userId) {
-    return NextResponse.json({
-      authed: false,
-      hasAccess: false,
-      accessLevel: 'no_access',
-    });
-  }
-
-  const isStaff = userId === STAFF_ID;
-
-  return NextResponse.json({
-    authed: true,
-    hasAccess: true,
-    accessLevel: isStaff ? 'staff' : 'member',
-    userId,
-  });
+  return NextResponse.json(payload);
 }
