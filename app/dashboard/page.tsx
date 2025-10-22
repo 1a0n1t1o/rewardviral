@@ -16,7 +16,7 @@ export default function Dashboard() {
   if (status.role === "staff") {
     return (
       <div className="p-8">
-        <h1>Welcome, Staff</h1>
+        <h1 className="text-2xl font-bold">Welcome, Staff</h1>
         <ul className="mt-4 list-disc pl-4">
           <li>See member submissions (coming soon)</li>
           <li>Moderation actions (coming soon)</li>
@@ -28,8 +28,8 @@ export default function Dashboard() {
 
   return (
     <div className="p-8">
-      <h1>Welcome, Member</h1>
-      <p>You don't have access to staff tools.</p>
+      <h1 className="text-2xl font-bold">Welcome, Member</h1>
+      <p className="mt-2">You don't have access to staff tools.</p>
     </div>
   );
 }

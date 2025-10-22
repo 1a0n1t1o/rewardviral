@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
+// Simple RBAC baseline (replace with real logic later)
 export async function GET() {
-  // Simulate Whop or database role fetching
-  // Replace this later with a real API call to Whop
-  const mockUserId = "user_mJXk8QGq2OxVL"; // Example
-  const staffUsers = ["user_mJXk8QGq2OxVL"]; // Your staff user IDs
+  // Replace with real Whop ID or auth lookup later
+  const mockUserId = "user_mJXk8QGq2OxVL";
+  const staffUsers = ["user_mJXk8QGq2OxVL"];
 
   const role = staffUsers.includes(mockUserId) ? "staff" : "member";
 
