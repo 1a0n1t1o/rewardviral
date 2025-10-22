@@ -3,182 +3,162 @@
 import { useEffect, useMemo, useState } from "react";
 import { useIframeSdk } from "@whop/react";
 
-type Status =
-  | { loading: true }
-  | { loading: false; error?: string; data?: any; note?: string; debug?: any };
+type AccessData = {
+  authed?: boolean;
+  hasAccess?: boolean;
+  warn?: string;
+  error?: string;
+  userId?: string;
+};
 
-function isInIframe(): boolean {
-  try {
-    return typeof window !== "undefined" && window.self !== window.top;
-  } catch {
-    return false;
-  }
+function getIframeFlag(): boolean {
+  try { return typeof window !== "undefined" && window.self !== window.top; }
+  catch { return false; }
 }
 
 export default function CheckAccessClient() {
-  const iframeSdk = useIframeSdk();
-  const [status, setStatus] = useState<Status>({ loading: true });
-
-  const inIframe = useMemo(isInIframe, []);
+  const sdk = useIframeSdk();
+  const inIframe = useMemo(getIframeFlag, []);
+  const [info, setInfo] = useState<{
+    loading: boolean;
+    inIframe: boolean;
+    providerMounted: boolean;
+    token?: string;
+    error?: string;
+    data?: AccessData;
+  }>({ loading: true, inIframe, providerMounted: false });
 
   useEffect(() => {
     let cancelled = false;
 
     async function run() {
-      // Collect debug info
-      const debug = {
-        inIframe,
-        hasIframeSdk: !!iframeSdk,
-        sdkMethods: iframeSdk ? Object.keys(iframeSdk) : [],
-        userAgent: typeof window !== "undefined" ? window.navigator.userAgent : "unknown",
-        location: typeof window !== "undefined" ? window.location.href : "unknown",
-        referrer: typeof document !== "undefined" ? document.referrer : "unknown",
-      };
-
-      // Not in Whop iframe → don't touch the SDK; show hint with debug
+      // If not in iframe, we don't try to use the SDK at all
       if (!inIframe) {
-        setStatus({
-          loading: false,
-          note: "Open from Whop: You must open this app from Whop so we can identify you.",
-          debug,
-        });
-        return;
-      }
-
-      // Check if SDK is properly mounted
-      if (!iframeSdk) {
-        setStatus({
-          loading: false,
-          error: "WhopProvider not mounted or SDK failed to initialize. Check console for errors.",
-          debug,
-        });
+        setInfo((p) => ({ ...p, loading: false, providerMounted: !!sdk, error: undefined }));
         return;
       }
 
       try {
-        // Some blockers can prevent SDK initialization; guard everything
-        const getToken =
-          (iframeSdk as any)?.getUserToken ||
-          (iframeSdk as any)?.userToken ||
-          null;
-
+        // Provider check: useIframeSdk() should return an object. We guard anyway.
+        const providerMounted = !!sdk && typeof sdk === "object";
         let token: string | undefined;
-        let tokenError: string | undefined;
 
-        if (getToken) {
+        // Avoid hard assumptions about SDK methods; try a few safely.
+        const candidates = [
+          (sdk as any)?.getUserToken,       // common
+          (sdk as any)?.userToken,          // some builds expose a prop
+          (sdk as any)?.user?.getToken,     // nested user helper
+        ].filter(Boolean);
+
+        for (const fn of candidates) {
           try {
-            token = await getToken.call(iframeSdk);
-          } catch (e: any) {
-            // SDK present but failed to return a token
-            token = undefined;
-            tokenError = e?.message || "Token fetch failed";
+            const maybe = await Promise.resolve(fn.call ? fn.call(sdk) : fn());
+            if (typeof maybe === "string" && maybe.length > 0) {
+              token = maybe;
+              break;
+            }
+          } catch {
+            // ignore and try next candidate
           }
-        } else {
-          tokenError = "No token method available on SDK";
         }
 
+        // Ask server if we're authed & have access (token optional)
         const res = await fetch("/api/access/status", {
           method: "GET",
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           cache: "no-store",
         });
 
-        const data = await res.json();
+        const data = (await res.json()) as AccessData;
+
         if (!cancelled) {
-          setStatus({ 
-            loading: false, 
-            data: {
-              ...data,
-              tokenPresent: !!token,
-              tokenError,
-            },
-            debug 
+          setInfo({
+            loading: false,
+            inIframe,
+            providerMounted,
+            token,
+            data,
+            error: undefined,
           });
         }
       } catch (e: any) {
-        if (!cancelled)
-          setStatus({
+        if (!cancelled) {
+          setInfo({
             loading: false,
+            inIframe,
+            providerMounted: !!sdk,
             error:
               e?.message ||
-              "Could not contact /api/access/status. If you're using privacy/ad blockers, allow apps.whop.com.",
-            debug,
+              "Client failed talking to /api/access/status. If you use privacy blockers, allow apps.whop.com & whop.com.",
           });
+        }
       }
     }
 
     run();
-    return () => {
-      cancelled = true;
-    };
-  }, [iframeSdk, inIframe]);
+    return () => { cancelled = true; };
+  }, [sdk, inIframe]);
 
-  if (status.loading) return <p>Checking access…</p>;
+  const box = {
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 12,
+    background: "#fafafa",
+  } as const;
 
-  // Not in iframe → friendly notice with debug
-  if (status.note) {
+  if (info.loading) return <p>Checking access…</p>;
+
+  // Not in iframe ⇒ friendly hint (no crash)
+  if (!info.inIframe) {
     return (
-      <div
-        style={{
-          border: "1px solid #ddd",
-          borderRadius: 8,
-          padding: 12,
-          background: "#fafafa",
-        }}
-      >
-        <div style={{ marginBottom: 8 }}>{status.note}</div>
-        {status.debug && (
-          <details style={{ fontSize: 12, color: "#666" }}>
-            <summary>Debug info</summary>
-            <pre style={{ marginTop: 4, fontSize: 10, overflowX: "auto" }}>
-              {JSON.stringify(status.debug, null, 2)}
-            </pre>
-          </details>
-        )}
-      </div>
+      <>
+        <div style={{ color: "#dc2626", marginBottom: 10 }}>
+          {/* If the provider threw earlier, SafeSection would catch; now we render safely. */}
+          {/* Keep this notice visible, it's expected when opened outside Whop. */}
+          Open from Whop: You must open this app from Whop so we can identify you.
+        </div>
+        <div style={box}>
+          <strong>Debug</strong>
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+{JSON.stringify({ inIframe: info.inIframe, providerMounted: info.providerMounted }, null, 2)}
+          </pre>
+        </div>
+      </>
     );
   }
 
-  if (status.error) {
+  // Inside iframe
+  if (info.error) {
     return (
-      <div>
-        <pre style={{ color: "crimson", whiteSpace: "pre-wrap", marginBottom: 8 }}>
-          {status.error}
-        </pre>
-        {status.debug && (
-          <details style={{ fontSize: 12, color: "#666" }}>
-            <summary>Debug info</summary>
-            <pre style={{ marginTop: 4, fontSize: 10, overflowX: "auto" }}>
-              {JSON.stringify(status.debug, null, 2)}
-            </pre>
-          </details>
-        )}
-      </div>
+      <>
+        <div style={{ color: "#dc2626", marginBottom: 10 }}>
+          {info.error}
+        </div>
+        <div style={box}>
+          <strong>Debug</strong>
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+{JSON.stringify({ inIframe: info.inIframe, providerMounted: info.providerMounted, token: !!info.token }, null, 2)}
+          </pre>
+        </div>
+      </>
     );
   }
 
   return (
-    <div>
-      <pre
-        style={{
-          background: "#111",
-          color: "#0f0",
-          padding: 12,
-          borderRadius: 8,
-          overflowX: "auto",
-          marginBottom: 8,
-        }}
-      >
-        {JSON.stringify(status.data ?? {}, null, 2)}
+    <div style={box}>
+      <strong>Access status</strong>
+      <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+{JSON.stringify(
+  {
+    inIframe: info.inIframe,
+    providerMounted: info.providerMounted,
+    hasToken: !!info.token,
+    server: info.data ?? {},
+  },
+  null,
+  2
+)}
       </pre>
-      {status.debug && (
-        <details style={{ fontSize: 12, color: "#666" }}>
-          <summary>Debug info</summary>
-          <pre style={{ marginTop: 4, fontSize: 10, overflowX: "auto" }}>
-            {JSON.stringify(status.debug, null, 2)}
-          </pre>
-        </details>
-      )}
     </div>
   );
 }
