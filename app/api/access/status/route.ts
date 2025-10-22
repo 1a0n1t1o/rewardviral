@@ -1,38 +1,29 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 
-type HasAccessResult =
-  | { __typename: "HasAccessResult"; hasAccess: true; accessLevel: "staff" | "member" }
-  | { __typename: "HasAccessResult"; hasAccess: false; accessLevel: "no_access" };
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export async function GET(req: Request) {
-  // Whop injects this when your app is opened inside their iframe
-  // If x-whop-user-id is null, the app is not being opened from Whop or headers are being blocked
-  const userId = req.headers.get("x-whop-user-id");
+const STAFF_ID = process.env.NEXT_PUBLIC_WHOP_AGENT_USER_ID; // user_...
 
-  // Not opened from Whop (or not logged in on Whop)
+export async function GET() {
+  const h = headers();
+  const userId = h.get('x-whop-user-id');
+
+  // If this is null, the app is not being opened from Whop (or headers are blocked).
   if (!userId) {
-    return NextResponse.json({ authed: false, hasAccess: false, hasAccessLevel: "no_access" } satisfies {
-      authed: false;
-      hasAccess: false;
-      hasAccessLevel: "no_access";
+    return NextResponse.json({
+      authed: false,
+      hasAccess: false,
+      accessLevel: 'no_access',
     });
   }
 
-  const staffId = process.env.NEXT_PUBLIC_WHOP_AGENT_USER_ID ?? "";
-
-  const isStaff = userId === staffId;
-
-  // Simple 2-role RBAC:
-  // - Staff: always true
-  // - Member: any authed non-staff user => true
-  const result: HasAccessResult = isStaff
-    ? { __typename: "HasAccessResult", hasAccess: true, accessLevel: "staff" }
-    : { __typename: "HasAccessResult", hasAccess: true, accessLevel: "member" };
-
+  const isStaff = STAFF_ID && userId === STAFF_ID;
   return NextResponse.json({
     authed: true,
-    hasAccess: result.hasAccess,
-    hasAccessLevel: result.accessLevel,
+    hasAccess: true,
+    accessLevel: isStaff ? 'staff' : 'member',
     userId,
   });
 }
