@@ -21,7 +21,17 @@ export default function GetAccessButton() {
       const res = await iframeSdk.inAppPurchase({ planId });
 
       if (res.status === "ok") {
-        setMsg(`Success! Receipt: ${res.data.receipt_id}`);
+        // Support both return shapes: {receiptId} (current) and {receipt_id} (legacy),
+        // and fall back to {sessionId} if present.
+        const d = res.data as {
+          receiptId?: string;
+          receipt_id?: string;
+          sessionId?: string;
+        };
+        const receipt =
+          d?.receiptId ?? d?.receipt_id ?? d?.sessionId ?? "unknown";
+
+        setMsg(`Success! Receipt: ${receipt}`);
       } else {
         setMsg(res.error || "Purchase failed");
       }
