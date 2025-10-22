@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { WhopServerSdk } from "@whop/react";
+import { WhopServerSdk } from "@whop/api";
 
 // Server-side SDK (requires API key)
 export const whopSdk = new WhopServerSdk(process.env.WHOP_API_KEY!);
