@@ -1,45 +1,76 @@
-// components/GetAccessButton.tsx
 "use client";
 
 import { useState } from "react";
 import { useIframeSdk } from "@whop/react";
 
+/**
+ * The Whop inAppPurchase response currently returns { status: "ok", data: { receiptId?: string, ... } }
+ * Older flows/samples used `receipt_id`. Support both to be safe.
+ */
+type InAppPurchaseOK = {
+  status: "ok";
+  data: Record<string, unknown> & {
+    receiptId?: string;
+    receipt_id?: string;
+    sessionId?: string;
+  };
+};
+
+type InAppPurchaseERR = {
+  status: "error";
+  error: string;
+};
+
+type InAppPurchaseRes = InAppPurchaseOK | InAppPurchaseERR;
+
+function getReceiptId(data: InAppPurchaseOK["data"] | undefined) {
+  if (!data) return undefined;
+  // Prefer modern key; fallback to legacy snake_case
+  return (data as any).receiptId ?? (data as any).receipt_id ?? undefined;
+}
+
 export default function GetAccessButton() {
   const iframeSdk = useIframeSdk();
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
+  const [message, setMessage] = useState<string>("");
 
-  async function handlePurchase() {
-    setLoading(true);
-    setMsg(undefined);
+  const handlePurchase = async () => {
+    if (!iframeSdk) return;
+
+    setSubmitting(true);
+    setMessage("");
+
     try {
-      const planId = process.env.NEXT_PUBLIC_PREMIUM_PLAN_ID!;
-      const res = await iframeSdk.inAppPurchase({ planId });
+      const res = (await iframeSdk.inAppPurchase({
+        planId: process.env.NEXT_PUBLIC_PREMIUM_PLAN_ID!,
+      })) as InAppPurchaseRes;
 
       if (res.status === "ok") {
-        setMsg(`Success! Receipt: ${res.data.receipt_id}`);
-        // soft refresh after purchase so /api/access/status reflects new access
-        setTimeout(() => window.location.reload(), 800);
+        const receiptId = getReceiptId(res.data);
+        setMessage(
+          receiptId ? `Success! Receipt: ${receiptId}` : "Success! Purchase complete."
+        );
       } else {
-        setMsg(res.error || "Purchase failed");
+        setMessage(res.error || "Purchase failed.");
       }
-    } catch (e: any) {
-      setMsg(e?.message || "Purchase failed");
+    } catch (err: any) {
+      console.error("Purchase failed:", err);
+      setMessage("Purchase failed.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
-  }
+  };
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col items-start gap-2">
       <button
         onClick={handlePurchase}
-        disabled={loading}
-        className="rounded border px-4 py-2"
+        disabled={!iframeSdk || submitting}
+        className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? "Processing..." : "Get Access"}
+        {submitting ? "Processing…" : "Get Access"}
       </button>
-      {msg && <p className="text-sm opacity-80">{msg}</p>}
+      {message ? <p className="text-sm text-gray-600">{message}</p> : null}
     </div>
   );
 }
