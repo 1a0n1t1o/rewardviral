@@ -1,10 +1,9 @@
-"use server";
 import "server-only";
 import { headers as nextHeaders } from "next/headers";
 import { WhopServerSdk } from "@whop/api";
 
 const apiKey = process.env.WHOP_API_KEY!;
-export const whopSdk = WhopServerSdk({ apiKey: apiKey }); // factory, no `new` if SDK exposes a function, otherwise keep `new` as used in your working version
+export const whopSdk = new WhopServerSdk({ apiKey: apiKey }); // if our SDK is a factory, call the factory instead
 
 /** Return current Whop user id from request headers (null if not inside Whop). */
 export function getWhopUserId(): string | null {
@@ -16,7 +15,7 @@ export function getWhopUserId(): string | null {
   return id && id !== "null" ? id : null;
 }
 
-/** Convenience: get all relevant Whop headers once. */
+/** Convenience: get a few whop headers at once. */
 export function getWhopHeaders() {
   const h = nextHeaders();
   return {
