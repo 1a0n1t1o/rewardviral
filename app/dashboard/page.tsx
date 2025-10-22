@@ -97,6 +97,13 @@ function RoleBlock({
     );
   }
 
+  const appId = process.env.NEXT_PUBLIC_WHOP_APP_ID!;
+  const planId = process.env.NEXT_PUBLIC_PREMIUM_PLAN_ID!; // or use PRODUCT_ID if you prefer Option B
+
+  const checkoutUrl = `https://whop.com/checkout/${planId}?app_id=${appId}`;
+  // If you prefer product instead of plan:
+  // const checkoutUrl = `https://whop.com/checkout/${process.env.NEXT_PUBLIC_PREMIUM_ACCESS_PASS_ID!}?app_id=${appId}`;
+
   return (
     <section className="rounded border p-4">
       <p className="mb-2 font-medium">Welcome to Dashboard</p>
@@ -104,14 +111,14 @@ function RoleBlock({
         You don&apos;t have access yet. If a &quot;Get Access&quot; button is available below, use it to purchase.
         Otherwise contact support.
       </p>
-      {passId ? (
-        <Link
-          href={`https://whop.com/checkout/${passId}`}
-          className="mt-4 inline-block rounded bg-black px-3 py-2 text-white"
-        >
-          Get Access
-        </Link>
-      ) : null}
+      <a
+        href={checkoutUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 inline-flex items-center rounded border px-3 py-2 text-sm font-medium hover:bg-muted"
+      >
+        Get Access
+      </a>
     </section>
   );
 }

@@ -6,6 +6,7 @@ type HasAccessResult =
 
 export async function GET(req: Request) {
   // Whop injects this when your app is opened inside their iframe
+  // If x-whop-user-id is null, the app is not being opened from Whop or headers are being blocked
   const userId = req.headers.get("x-whop-user-id");
 
   // Not opened from Whop (or not logged in on Whop)
