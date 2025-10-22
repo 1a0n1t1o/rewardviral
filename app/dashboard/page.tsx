@@ -9,9 +9,8 @@ import StaffBadge from '@/components/StaffBadge';
 type AccessStatus = {
   authed: boolean;
   hasAccess: boolean;
+  accessLevel?: "staff" | "member" | "no_access";
   userId?: string;
-  accessLevel?: string;
-  isStaff?: boolean;
   error?: string;
   warn?: string;
 };
@@ -66,7 +65,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!status.hasAccess) {
+  if (!status.hasAccess || status.accessLevel === "no_access") {
     return (
       <div className="mx-auto max-w-3xl p-8">
         <h1 className="text-3xl font-bold mb-6">Welcome to Dashboard</h1>
@@ -98,12 +97,12 @@ export default function DashboardPage() {
       <div className="rounded border p-4 space-y-3">
         <div className="flex items-center gap-2">
           <h2 className="font-semibold">Access Granted</h2>
-          {status.isStaff && <StaffBadge />}
+          {status.accessLevel === "staff" && <StaffBadge />}
         </div>
 
         <p className="text-sm text-gray-600">User: {displayName}</p>
 
-        {status.isStaff && (
+        {status.accessLevel === "staff" && (
           <div className="rounded border border-dashed border-gray-300 p-3 bg-gray-50">
             <h3 className="font-medium text-sm mb-2">Staff tools</h3>
             <ul className="text-sm text-gray-600 space-y-1">
