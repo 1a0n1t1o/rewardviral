@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import GetAccessButton from "@/components/GetAccessButton";
+import dynamic from "next/dynamic";
+const CheckAccessClient = dynamic(() => import("@/components/CheckAccessClient"), { ssr: false });
 
 type AccessResp =
   | { authed: false; hasAccess: false }
@@ -51,6 +53,11 @@ export default function DashboardPage() {
     >
       <div style={{ width: 520, maxWidth: "100%", display: "grid", gap: 16 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800 }}>Welcome to Dashboard</h1>
+
+        {/* Debug panel (remove later): shows authed/hasAccess when opened inside Whop */}
+        <div style={{ marginBottom: 16 }}>
+          <CheckAccessClient />
+        </div>
 
         {err && <div style={{ color: "crimson" }}>Error: {err}</div>}
         {!state && !err && <div>Loading…</div>}
