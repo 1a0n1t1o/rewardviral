@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getWhopDisplayName } from '@/lib/whop-sdk';
+import { getWhopDisplayName } from '@/lib/whop-shared';
 import GetAccessButton from '@/components/GetAccessButton';
 import StaffBadge from '@/components/StaffBadge';
 

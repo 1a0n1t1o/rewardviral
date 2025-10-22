@@ -1,6 +1,6 @@
 // app/api/access/status/route.ts
 import { NextResponse } from 'next/server';
-import { getWhopUserId, whopSdk } from '@/lib/whop-sdk';
+import { getWhopUserId, whopSdk } from '@/lib/whop-server';
 import { isStaffLevel } from '@/lib/rbac';
 
 export async function GET() {

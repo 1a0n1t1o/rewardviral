@@ -1,4 +1,4 @@
-import { whopSdk } from "@/lib/whop-sdk";
+import { whopSdk } from "@/lib/whop-server";
 import { headers } from "next/headers";
 
 export default async function DashboardPage({
