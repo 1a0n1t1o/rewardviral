@@ -2,7 +2,8 @@ import { headers } from "next/headers";
 import { WhopServerSdk } from "@whop/api";
 
 // Server-side SDK (requires API key)
-export const whopSdk = new WhopServerSdk(process.env.WHOP_API_KEY!);
+// NOTE: WhopServerSdk is a factory function, not a class → do NOT use `new`.
+export const whopSdk = WhopServerSdk({ apiKey: process.env.WHOP_API_KEY! });
 
 /**
  * Attempt to resolve the current user id. Works in both modes:
