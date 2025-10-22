@@ -1,53 +1,31 @@
 import Link from "next/link";
+import { getAccessFromHeaders, type AccessLevel } from "@/lib/whop";
 
-type AccessLevel = "staff" | "member" | "no_access";
-
-async function getAccess() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/access/status`, {
-    cache: "no-store",
-  }).catch(() => null);
-
-  if (!res || !res.ok) {
-    // Fallback to client-side fetch below
-    return null;
-  }
-  return (await res.json()) as {
-    authed: boolean;
-    accessLevel: AccessLevel;
-    userId?: string | null;
-  };
-}
-
-export default async function DashboardPage() {
-  const serverStatus = await getAccess(); // May be null on Vercel preview; UI also hydrates client-side
+export default function DashboardPage() {
+  const status = getAccessFromHeaders();
   const passId = process.env.NEXT_PUBLIC_PREMIUM_ACCESS_PASS_ID;
 
   return (
     <main className="mx-auto max-w-3xl p-6">
       <h1 className="text-2xl font-semibold mb-6">Welcome to Dashboard</h1>
-
-      {/* Server render attempt */}
-      {serverStatus ? (
-        <ServerBlock status={serverStatus} passId={passId} />
-      ) : (
-        <ClientBlock passId={passId} />
-      )}
+      <RoleBlock status={status} passId={passId} />
     </main>
   );
 }
 
-function ServerBlock({
+function RoleBlock({
   status,
   passId,
 }: {
-  status: { authed: boolean; accessLevel: AccessLevel; userId?: string | null };
+  status: { authed: boolean; accessLevel: AccessLevel; userId: string | null };
   passId?: string;
 }) {
   if (status.accessLevel === "staff") {
     return (
       <section className="rounded border p-4">
         <p className="mb-2 font-medium">
-          Access Granted <span className="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">Staff</span>
+          Access Granted{" "}
+          <span className="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">Staff</span>
         </p>
         <p className="mb-4 text-sm text-gray-600">User: {status.userId}</p>
         <div className="rounded border border-dashed bg-gray-50 p-4 text-sm">
@@ -78,7 +56,8 @@ function ServerBlock({
     <section className="rounded border p-4">
       <p className="mb-2 font-medium">Welcome to Dashboard</p>
       <p className="text-sm text-gray-700">
-        You don&apos;t have access yet. If a &quot;Get Access&quot; button is available below, use it to purchase. Otherwise contact support.
+        You don&apos;t have access yet. If a &quot;Get Access&quot; button is available below, use it to purchase.
+        Otherwise contact support.
       </p>
       {passId ? (
         <Link
@@ -90,23 +69,4 @@ function ServerBlock({
       ) : null}
     </section>
   );
-}
-
-"use client";
-import { useEffect, useState } from "react";
-
-function ClientBlock({ passId }: { passId?: string }) {
-  const [status, setStatus] = useState<null | { authed: boolean; accessLevel: AccessLevel; userId?: string | null }>(
-    null
-  );
-
-  useEffect(() => {
-    fetch("/api/access/status", { cache: "no-store" })
-      .then((r) => r.json())
-      .then(setStatus)
-      .catch(() => setStatus(null));
-  }, []);
-
-  if (!status) return <p className="text-sm text-gray-600">Loading…</p>;
-  return <ServerBlock status={status} passId={passId} />;
 }

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAccessFromHeaders } from "@/lib/access";
+import { getAccessFromHeaders } from "@/lib/whop";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
-  const status = getAccessFromHeaders(req);
+export function GET() {
+  const status = getAccessFromHeaders();
   return NextResponse.json(status, { status: 200 });
 }
