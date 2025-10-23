@@ -1,8 +1,8 @@
 type Role = 'no_access' | 'member' | 'staff';
 
-const WHOP_API_KEY = process.env.WHOP_API_KEY!;
-const WHOP_APP_ID = process.env.NEXT_PUBLIC_WHOP_APP_ID!;
-const WHOP_COMPANY_ID = process.env.NEXT_PUBLIC_WHOP_COMPANY_ID!;
+const WHOP_API_KEY = process.env.WHOP_API_KEY ?? null;
+const WHOP_APP_ID = process.env.NEXT_PUBLIC_WHOP_APP_ID ?? null;
+const WHOP_COMPANY_ID = process.env.NEXT_PUBLIC_WHOP_COMPANY_ID ?? null;
 
 if (!WHOP_API_KEY) {
   console.warn('[RBAC] Missing WHOP_API_KEY env var.');
@@ -15,6 +15,9 @@ if (!WHOP_COMPANY_ID) {
 }
 
 async function whopGet(url: string) {
+  if (!WHOP_API_KEY) {
+    throw new Error('WHOP_API_KEY is not configured');
+  }
   const res = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${WHOP_API_KEY}`,
