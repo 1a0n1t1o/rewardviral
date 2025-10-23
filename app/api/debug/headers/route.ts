@@ -1,16 +1,16 @@
-// app/api/debug/headers/route.ts
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-export function GET() {
-  // headers() is synchronous — do NOT await it
-  const h = headers();
-
-  // Avoid forEach typing issues by using entries()
+/**
+ * Debug: return all request headers as JSON.
+ * Using req.headers avoids Next.js typing differences for `headers()`.
+ */
+export async function GET(req: Request) {
   const obj: Record<string, string> = {};
-  for (const [key, value] of h.entries()) {
+
+  // Request.headers is always synchronous and supports forEach in all runtimes
+  req.headers.forEach((value, key) => {
     obj[key] = value;
-  }
+  });
 
   return NextResponse.json(obj, { status: 200 });
 }
