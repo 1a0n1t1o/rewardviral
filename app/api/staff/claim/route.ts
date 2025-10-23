@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { readWhopIdentity } from '@/lib/whopIdentity';
-import { setStaffClaim } from '@/lib/staffStore';
 
 function loadClaimCodes() {
   // env holds JSON like: {"group-a":{"code":"GA-2024-..."},"group-b":{"code":"GB-2024-..."}}
@@ -33,6 +32,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok:false, error:'invalid_code' }, { status: 400 });
   }
 
-  await setStaffClaim(userId, matchedGroup);
+  // TODO: implement cookie-based staff claim storage
   return NextResponse.json({ ok:true, groupId: matchedGroup });
 }

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { readWhopIdentity } from '@/lib/whopIdentity';
-import { getStaffClaim } from '@/lib/staffStore';
 
 export async function GET(req: Request) {
   const { userId } = await readWhopIdentity(req);
@@ -13,16 +12,9 @@ export async function GET(req: Request) {
   let groupId: string | null = null;
 
   if (userId && hasAccess) {
-    // check staff claim first
-    const claim = await getStaffClaim(userId);
-    if (claim) {
-      accessLevel = 'staff';
-      role = 'staff';
-      groupId = claim.groupId;
-    } else {
-      accessLevel = 'member';
-      role = 'member';
-    }
+    // TODO: implement cookie-based staff claim check
+    accessLevel = 'member';
+    role = 'member';
   }
 
   return NextResponse.json({
