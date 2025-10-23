@@ -1,29 +1,37 @@
-import { getHeaders } from '@/lib/getHeaders';
+export type AccessStatus = {
+  authed: boolean;
+  hasAccess: boolean;
+  accessLevel: 'no_access' | 'member' | 'staff';
+  role: 'member' | 'staff' | null;
+  userId: string | null;
+  groupId: string | null;
+};
 
-function decodeSubFromJWT(jwt?: string | null): string | null {
-  if (!jwt) return null;
-  const parts = jwt.split('.');
-  if (parts.length < 2) return null;
-  try {
-    const payloadJson = Buffer.from(
-      parts[1].replace(/-/g, '+').replace(/_/g, '/'),
-      'base64'
-    ).toString('utf8');
-    const payload = JSON.parse(payloadJson);
-    return typeof payload.sub === 'string' ? payload.sub : null;
-  } catch {
-    return null;
-  }
+async function getWhopUserIdFromToken(userToken: string): Promise<string | null> {
+  if (!userToken) return null;
+  // Ask Whop who this token belongs to (no need to verify JWT ourselves)
+  const res = await fetch('https://api.whop.com/api/v2/me', {
+    headers: { Authorization: `Bearer ${userToken}` },
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  // Whop returns { id: "user_..." , ... }
+  return typeof data?.id === 'string' ? data.id : null;
 }
 
-export async function getCurrentUserId(): Promise<string | null> {
-  const h = await getHeaders();
-  // Prefer explicit header if Whop injects it
-  const fromHeader = h.get('x-whop-user-id');
-  if (fromHeader) return fromHeader;
+export async function readWhopIdentity(req: Request): Promise<{ userId: string | null; userToken: string | null; appId: string | null; }> {
+  const h = req.headers;
+  const userToken = h.get('x-whop-user-token');
+  const appId = h.get('x-whop-app-id');
+  let userId: string | null = null;
 
-  // Otherwise decode the userId from the Whop user token
-  const token = h.get('x-whop-user-token');
-  const fromToken = decodeSubFromJWT(token);
-  return fromToken ?? null;
+  try {
+    if (userToken) {
+      userId = await getWhopUserIdFromToken(userToken);
+    }
+  } catch {
+    userId = null;
+  }
+  return { userId, userToken, appId };
 }

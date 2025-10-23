@@ -1,25 +1,36 @@
-import { getCurrentUserId } from '@/lib/whopIdentity';
-import { getRole } from '@/lib/store';
+import { NextResponse } from 'next/server';
+import { readWhopIdentity } from '@/lib/whopIdentity';
+import { getStaffClaim } from '@/lib/staffStore';
 
-export async function GET() {
-  const userId = await getCurrentUserId();
-  const base = { authed: !!userId, userId: userId ?? undefined };
+export async function GET(req: Request) {
+  const { userId } = await readWhopIdentity(req);
 
-  if (!userId) {
-    return Response.json({ ...base, hasAccess: false, accessLevel: 'no_access' }, { headers: { 'content-type': 'application/json; charset=utf-8' } });
+  // You already calculate these from passes/plans. Keep your existing logic:
+  const hasAccess = /* your existing pass/plan check here */ true; // placeholder
+
+  let accessLevel: 'no_access' | 'member' | 'staff' = 'no_access';
+  let role: 'member' | 'staff' | null = null;
+  let groupId: string | null = null;
+
+  if (userId && hasAccess) {
+    // check staff claim first
+    const claim = await getStaffClaim(userId);
+    if (claim) {
+      accessLevel = 'staff';
+      role = 'staff';
+      groupId = claim.groupId;
+    } else {
+      accessLevel = 'member';
+      role = 'member';
+    }
   }
 
-  const rec = await getRole(userId);
-  const accessLevel = rec.role === 'staff' ? 'staff' : 'member';
-
-  return Response.json(
-    {
-      ...base,
-      hasAccess: true,
-      accessLevel,
-      role: rec.role,
-      groupId: rec.groupId ?? null
-    },
-    { headers: { 'content-type': 'application/json; charset=utf-8' } }
-  );
+  return NextResponse.json({
+    authed: Boolean(userId),
+    hasAccess,
+    accessLevel,
+    role,
+    userId,
+    groupId,
+  });
 }
