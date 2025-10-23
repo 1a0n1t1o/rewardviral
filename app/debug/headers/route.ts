@@ -4,8 +4,8 @@ export async function GET() {
   const h = await getHeaders();
 
   const obj: Record<string, string> = {};
-  // ReadonlyHeaders supports forEach(key, value)
-  h.forEach((value, key) => {
+  // Explicit parameter types to satisfy noImplicitAny
+  h.forEach((value: string, key: string) => {
     obj[key] = value;
   });
 
