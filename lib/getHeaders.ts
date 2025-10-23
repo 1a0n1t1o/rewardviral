@@ -1,7 +1,16 @@
 import { headers as nextHeaders } from 'next/headers';
 
-export async function getHeaders(): Promise<ReadonlyHeaders> {
-  // Normalize in case some env returns a thenable.
-  const maybe = nextHeaders() as any;
-  return typeof maybe?.then === 'function' ? await maybe : maybe;
+/**
+ * Normalizes Next's headers() result across runtimes where it might
+ * be returned as a thenable. We avoid using the internal ReadonlyHeaders
+ * type and just return a standard Headers-compatible object.
+ */
+export async function getHeaders() {
+  const maybe = nextHeaders() as unknown;
+
+  // If some runtime returns a thenable, await it.
+  const value =
+    typeof (maybe as any)?.then === 'function' ? await (maybe as any) : maybe;
+
+  return value as Headers;
 }
