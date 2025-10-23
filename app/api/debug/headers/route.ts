@@ -1,17 +1,10 @@
-import { headers } from "next/headers";
-
-export async function GET() {
-  // In some environments headers() is typed as Promise<ReadonlyHeaders>
-  const h = (await headers()) as unknown as Headers;
-
-  // Build a plain object without relying on fromEntries typings
+// Keep this route minimal and 100% standard Web API to avoid typing issues.
+export async function GET(req: Request) {
   const out: Record<string, string> = {};
-  // Use .entries() and coerce tuple types to [string, string]
-  // to avoid Iterator<unknown> TS friction across runtimes.
-  for (const [k, v] of (h as any).entries() as Iterable<[string, string]>) {
-    out[String(k)] = String(v);
-  }
-
+  // Web standard: Request.headers is a Headers object that supports forEach
+  req.headers.forEach((value, key) => {
+    out[String(key)] = String(value);
+  });
   return new Response(JSON.stringify(out, null, 2), {
     status: 200,
     headers: { "content-type": "application/json; charset=utf-8" },
