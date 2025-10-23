@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 
-export const dynamic = "force-dynamic";
-
 export async function GET() {
-  const h = await headers();
-  return NextResponse.json({
-    "x-whop-user-id": h.get("x-whop-user-id") ?? null,
-    "x-whop-company-id": h.get("x-whop-company-id") ?? null,
-    referer: h.get("referer") ?? null,
-    host: h.get("host") ?? null,
+  // Read request headers from the edge/runtime
+  const h = headers();
+  const obj: Record<string, string> = {};
+  h.forEach((value, key) => {
+    obj[key] = value;
+  });
+
+  return new Response(JSON.stringify(obj, null, 2), {
+    status: 200,
+    headers: { "content-type": "application/json; charset=utf-8" },
   });
 }
