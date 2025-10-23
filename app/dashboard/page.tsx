@@ -1,32 +1,24 @@
-import React from "react";
-import { getIdentity } from "@/lib/identity";
+import { readIdentity } from '@/lib/identity';
 
 export default function DashboardPage() {
-  const identity = getIdentity();
+  const access = readIdentity();
 
-  if (!identity.hasAccess) {
+  if (access.accessLevel === 'no_access') {
     return (
-      <div className="prose max-w-3xl">
+      <main className="p-4">
         <h1>Welcome to Dashboard</h1>
-        <div className="border rounded p-4">
-          You don&apos;t have access yet. If a &quot;Get Access&quot; button is available below,
-          use it to purchase. Otherwise contact support.
+        <div className="border p-3 mt-3">
+          You don't have access yet. If a "Get Access" button is available below, use it to purchase. Otherwise contact support.
         </div>
-      </div>
+      </main>
     );
   }
 
-  // Member view (simple mode)
   return (
-    <div className="prose max-w-3xl">
+    <main className="p-4">
       <h1>Welcome to Dashboard</h1>
-      <p className="mt-2">You&apos;re in! (Simple mode: everyone is a member.)</p>
-      <ul className="mt-4">
-        <li>Role: {identity.role}</li>
-        <li>Access level: {identity.accessLevel}</li>
-        <li>User ID: {identity.userId ?? "unknown"}</li>
-        <li>Group ID: {identity.groupId ?? "none"}</li>
-      </ul>
-    </div>
+      <p className="mt-3">Hello {access.userId ?? 'member'} — you have {access.accessLevel} access.</p>
+      {/* member UI here */}
+    </main>
   );
 }

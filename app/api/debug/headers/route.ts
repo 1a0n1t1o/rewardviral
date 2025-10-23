@@ -1,12 +1,12 @@
-// Keep this route minimal and 100% standard Web API to avoid typing issues.
-export async function GET(req: Request) {
-  const out: Record<string, string> = {};
-  // Web standard: Request.headers is a Headers object that supports forEach
-  req.headers.forEach((value, key) => {
-    out[String(key)] = String(value);
+import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+
+export function GET() {
+  const h = headers();                    // NOT awaited
+  const obj: Record<string, string> = {};
+  // Headers in Next.js implement forEach
+  h.forEach((value, key) => {
+    obj[key] = value;
   });
-  return new Response(JSON.stringify(out, null, 2), {
-    status: 200,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
+  return NextResponse.json(obj, { status: 200 });
 }
