@@ -1,12 +1,16 @@
-import { NextResponse } from 'next/server';
+// app/api/debug/headers/route.ts
 import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
 
 export function GET() {
-  const h = headers();                    // NOT awaited
+  // headers() is synchronous — do NOT await it
+  const h = headers();
+
+  // Avoid forEach typing issues by using entries()
   const obj: Record<string, string> = {};
-  // Headers in Next.js implement forEach
-  h.forEach((value, key) => {
+  for (const [key, value] of h.entries()) {
     obj[key] = value;
-  });
+  }
+
   return NextResponse.json(obj, { status: 200 });
 }
