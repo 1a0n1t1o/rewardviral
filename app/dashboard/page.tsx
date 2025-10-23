@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StaffClaimBox } from "./StaffClaimBox";
 
 type AccessStatus = {
   authed: boolean;
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
     <main className="mx-auto max-w-3xl p-6">
       <h1 className="text-2xl font-semibold mb-6">Welcome to Dashboard</h1>
       <RoleBlock status={status} />
+      <StaffClaimBox />
     </main>
   );
 }
