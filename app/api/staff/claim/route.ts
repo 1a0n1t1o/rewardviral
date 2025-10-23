@@ -1,37 +1,49 @@
-import { NextResponse } from 'next/server';
-import { readWhopIdentity } from '@/lib/whopIdentity';
+import { NextRequest, NextResponse } from 'next/server';
 
-function loadClaimCodes() {
-  // env holds JSON like: {"group-a":{"code":"GA-2024-..."},"group-b":{"code":"GB-2024-..."}}
-  const raw = process.env.CLAIM_CODES ?? '{}';
-  try { return JSON.parse(raw) as Record<string,{code:string}>; } catch { return {}; }
+type ClaimCodes = Record<string, string>; // code -> groupId
+
+function readClaimCodes(): ClaimCodes {
+  try {
+    const raw = process.env.CLAIM_CODES || '{}';
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed as ClaimCodes;
+  } catch {}
+  return {};
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const code = (searchParams.get('code') || '').trim();
-  if (!code) {
-    return NextResponse.json({ ok:false, error:'missing_code' }, { status: 400 });
+export async function POST(req: NextRequest) {
+  let code = '';
+  try {
+    const body = await req.json();
+    code = (body?.code || '').trim();
+  } catch {
+    // ignore
   }
 
-  const { userId } = await readWhopIdentity(req);
-  if (!userId) {
-    // must be called from inside the Whop iframe so the x-whop-user-token header is present
-    return NextResponse.json({ ok:false, error:'not_in_whop_iframe' }, { status: 401 });
+  const codes = readClaimCodes();
+  const groupId = codes[code];
+
+  if (!groupId) {
+    return NextResponse.json(
+      { ok: false, error: 'invalid_code' },
+      { status: 400 }
+    );
   }
 
-  const claimCodes = loadClaimCodes();
-  let matchedGroup: string | null = null;
-  for (const [groupId, entry] of Object.entries(claimCodes)) {
-    if (entry?.code?.toLowerCase() === code.toLowerCase()) {
-      matchedGroup = groupId;
-      break;
-    }
-  }
-  if (!matchedGroup) {
-    return NextResponse.json({ ok:false, error:'invalid_code' }, { status: 400 });
-  }
-
-  // TODO: implement cookie-based staff claim storage
-  return NextResponse.json({ ok:true, groupId: matchedGroup });
+  // Mark as staff and remember group
+  const res = NextResponse.json({ ok: true, role: 'staff', groupId });
+  // httpOnly so JS can't read them; lax is fine for app use
+  res.cookies.set('vr-role', 'staff', {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+  });
+  res.cookies.set('vr-group', groupId, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 30,
+  });
+  return res;
 }
