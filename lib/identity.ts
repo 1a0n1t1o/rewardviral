@@ -1,30 +1,32 @@
-import { headers } from "next/headers";
+export type AccessLevel = "no_access" | "member" | "staff";
 
-export type AccessLevel = "member" | "staff" | "no_access";
-
-export type Identity = {
+export interface Identity {
   authed: boolean;
   hasAccess: boolean;
   accessLevel: AccessLevel;
   role: "member" | "staff" | null;
   userId: string | null;
   groupId: string | null;
-};
+}
 
 /**
- * Simple, safe identity getter.
- * - No external calls
- * - Works even if Whop doesn't inject every header
+ * Build an Identity from a Headers object.
+ * (No dependency on `next/headers`.)
  */
-export function getIdentity(): Identity {
-  const h = headers(); // Not a Promise
-
-  // Whop sometimes injects x-whop-user-id; when it's not there, we stay null.
-  const userId = h.get("x-whop-user-id") ?? null;
+export function identityFromHeaders(h?: Headers | null): Identity {
+  const userId = h?.get("x-whop-user-id") ?? null;
   const groupId = null; // reserved for future
 
-  // SIMPLE MODE:
-  // Everyone is a member. We'll flip to 'staff' later once your staff-claim flow is ready.
+  if (!userId) {
+    return {
+      authed: true,
+      hasAccess: false,
+      accessLevel: "no_access",
+      role: null,
+      userId,
+      groupId,
+    };
+  }
   return {
     authed: true,
     hasAccess: true,
@@ -33,4 +35,19 @@ export function getIdentity(): Identity {
     userId,
     groupId,
   };
+}
+
+/**
+ * Convenience for route handlers: pass the Request to read headers.
+ */
+export function identityFromRequest(req: Request): Identity {
+  return identityFromHeaders(req.headers);
+}
+
+/**
+ * Backwards-compatible no-arg identity for places that don't have a Request.
+ * Returns a conservative "no_access". Prefer passing a Request.
+ */
+export function getIdentity(): Identity {
+  return identityFromHeaders(null);
 }
