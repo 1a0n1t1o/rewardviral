@@ -1,16 +1,18 @@
-import { headers as nextHeaders } from 'next/headers';
+import { headers } from 'next/headers';
 
 /**
- * Normalizes Next's headers() result across runtimes where it might
- * be returned as a thenable. We avoid using the internal ReadonlyHeaders
- * type and just return a standard Headers-compatible object.
+ * Return a Headers-like object.
+ * - If a Request is supplied, use req.headers.
+ * - Otherwise, fall back to next/headers() (sync at runtime).
  */
-export async function getHeaders() {
-  const maybe = nextHeaders() as unknown;
+export function getHeaders(req?: Request): Headers {
+  if (req?.headers) return req.headers;
+  const h = (headers as unknown as () => Headers)();
+  return h;
+}
 
-  // If some runtime returns a thenable, await it.
-  const value =
-    typeof (maybe as any)?.then === 'function' ? await (maybe as any) : maybe;
-
-  return value as Headers;
+/** Case-insensitive single-header getter */
+export function getHeader(name: string, req?: Request): string | null {
+  const h = getHeaders(req);
+  return h.get(name) ?? null;
 }
