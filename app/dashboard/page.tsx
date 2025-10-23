@@ -1,84 +1,97 @@
+// Simple, null-safe dashboard gate that never throws on missing headers/IDs.
 import Link from "next/link";
-import { StaffClaimBox } from "./StaffClaimBox";
 
 type AccessStatus = {
   authed: boolean;
   hasAccess: boolean;
-  hasAccessLevel: "staff" | "member" | "no_access";
-  userId?: string | null;
+  accessLevel: "no_access" | "member" | "staff";
+  role: "member" | "staff" | null;
+  userId: string | null;
+  groupId: string | null;
 };
 
-async function getAccessStatus(): Promise<AccessStatus> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/access/status`, { 
-    cache: 'no-store',
-    headers: {
-      'x-whop-user-id': process.env.NEXT_PUBLIC_WHOP_AGENT_USER_ID || '',
+export const dynamic = "force-dynamic";
+
+async function getAccess(): Promise<AccessStatus> {
+  try {
+    // Relative fetch is fine in a Next.js Server Component.
+    const res = await fetch("/api/access/status", { cache: "no-store" });
+    if (!res.ok) {
+      return {
+        authed: false,
+        hasAccess: false,
+        accessLevel: "no_access",
+        role: null,
+        userId: null,
+        groupId: null,
+      };
     }
-  });
-  
-  if (!res.ok) {
+    const data = (await res.json()) as AccessStatus;
+    // Coerce any missing fields so we never crash rendering.
+    return {
+      authed: !!data.authed,
+      hasAccess: !!data.hasAccess,
+      accessLevel: (data.accessLevel ?? "no_access") as AccessStatus["accessLevel"],
+      role: (data.role ?? null) as AccessStatus["role"],
+      userId: data.userId ?? null,
+      groupId: data.groupId ?? null,
+    };
+  } catch {
     return {
       authed: false,
       hasAccess: false,
-      hasAccessLevel: 'no_access',
+      accessLevel: "no_access",
+      role: null,
+      userId: null,
+      groupId: null,
     };
   }
-  
-  return res.json();
 }
 
 export default async function DashboardPage() {
-  const status = await getAccessStatus();
+  const access = await getAccess();
 
+  // 1) If the user does not have access, show the same "Get Access" gate message
+  //    instead of throwing.
+  if (!access.hasAccess) {
+    return (
+      <main className="mx-auto max-w-3xl p-6">
+        <h1 className="text-2xl font-semibold mb-4">Welcome to Dashboard</h1>
+        <div className="rounded border p-4 text-sm">
+          <p className="mb-2">
+            You don't have access yet. If a <em>"Get Access"</em> button is available,
+            use it to purchase. Otherwise contact support.
+          </p>
+          <Link href="/" className="underline">
+            Back to Home
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // 2) Member or Staff – render a simple, null-safe dashboard.
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <h1 className="text-2xl font-semibold mb-6">Welcome to Dashboard</h1>
-      <RoleBlock status={status} />
-      <StaffClaimBox />
-    </main>
-  );
-}
+      <h1 className="text-2xl font-semibold mb-2">Dashboard</h1>
+      <p className="text-sm text-neutral-500 mb-6">
+        Role: <b>{access.role ?? "member"}</b>{" "}
+        {access.groupId ? (
+          <> · Group: <b>{access.groupId}</b></>
+        ) : null}
+      </p>
 
-function RoleBlock({ status }: { status: AccessStatus }) {
-  if (status.hasAccessLevel === "staff") {
-    return (
-      <section className="rounded border p-4">
-        <p className="mb-2 font-medium">
-          Access Granted{" "}
-          <span className="ml-2 rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">Staff</span>
-        </p>
-        <p className="mb-4 text-sm text-gray-600">User: {status.userId}</p>
-        <div className="rounded border border-dashed bg-gray-50 p-4 text-sm">
-          <p className="font-medium mb-1">Staff tools</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>See member submissions (coming soon)</li>
-            <li>Moderation actions (coming soon)</li>
-            <li>Export data (coming soon)</li>
-          </ul>
+      {/* Example: never assume userId or groupId exists */}
+      <section className="rounded border p-4 space-y-2">
+        <div>
+          <span className="font-medium">User ID:</span>{" "}
+          <code>{access.userId ?? "none"}</code>
+        </div>
+        <div>
+          <span className="font-medium">Access Level:</span>{" "}
+          <code>{access.accessLevel}</code>
         </div>
       </section>
-    );
-  }
-
-  if (status.hasAccessLevel === "member") {
-    return (
-      <section className="rounded border p-4">
-        <p className="mb-2 font-medium">Access Granted</p>
-        <p className="mb-4 text-sm text-gray-600">User: {status.userId}</p>
-        <label className="block text-sm font-medium mb-1">Write a comment…</label>
-        <textarea className="w-full rounded border p-2 h-28" placeholder="Say hello..." />
-        <button className="mt-3 rounded bg-black px-3 py-2 text-white">Submit</button>
-      </section>
-    );
-  }
-
-  return (
-    <section className="rounded border p-4">
-      <p className="mb-2 font-medium">Welcome to Dashboard</p>
-      <p className="text-sm text-gray-700">
-        You don't have access yet. Please contact support for assistance.
-      </p>
-    </section>
+    </main>
   );
 }
