@@ -16,8 +16,8 @@ function decodeSubFromJWT(jwt?: string | null): string | null {
   }
 }
 
-export function getCurrentUserId(): string | null {
-  const h = headers();
+export async function getCurrentUserId(): Promise<string | null> {
+  const h = await headers(); // headers(): Promise<ReadonlyHeaders> on this setup
   // Prefer explicit header if Whop injects it
   const fromHeader = h.get('x-whop-user-id');
   if (fromHeader) return fromHeader;

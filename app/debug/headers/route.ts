@@ -6,12 +6,7 @@ export async function GET() {
   // In this project headers() returns Promise<ReadonlyHeaders>; await it
   const h = await headers();
 
-  // ReadonlyHeaders doesn't expose `.entries()` in the type definition here,
-  // so build a plain object via `forEach`.
-  const obj: Record<string, string> = {};
-  h.forEach((value, key) => {
-    obj[key] = value;
-  });
+  const obj = Object.fromEntries(h.entries());
 
   return new Response(JSON.stringify(obj, null, 2), {
     headers: {

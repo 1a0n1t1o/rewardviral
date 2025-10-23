@@ -2,7 +2,7 @@ import { getCurrentUserId } from '@/lib/whopIdentity';
 import { getRole } from '@/lib/store';
 
 export async function GET() {
-  const userId = getCurrentUserId();
+  const userId = await getCurrentUserId();
   const base = { authed: !!userId, userId: userId ?? undefined };
 
   if (!userId) {
