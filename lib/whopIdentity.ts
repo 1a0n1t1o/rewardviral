@@ -1,4 +1,4 @@
-import { headers } from 'next/headers';
+import { getHeaders } from '@/lib/getHeaders';
 
 function decodeSubFromJWT(jwt?: string | null): string | null {
   if (!jwt) return null;
@@ -17,7 +17,7 @@ function decodeSubFromJWT(jwt?: string | null): string | null {
 }
 
 export async function getCurrentUserId(): Promise<string | null> {
-  const h = await headers(); // headers(): Promise<ReadonlyHeaders> on this setup
+  const h = await getHeaders();
   // Prefer explicit header if Whop injects it
   const fromHeader = h.get('x-whop-user-id');
   if (fromHeader) return fromHeader;
