@@ -1,60 +1,25 @@
-import { headers } from 'next/headers';
-import { getCachedRole, setCachedRole } from '@/lib/role-cache';
-import { resolveRoleFromWhop } from '@/lib/whop-check';
-
-type Role = 'no_access' | 'member' | 'staff';
-export const dynamic = 'force-dynamic';
-
-// Simple base64 decoder for JWT payloads
-function decodeJwtPayload(token: string): any | null {
-  try {
-    const base64 = token.split('.')[1];
-    const json = Buffer.from(base64, 'base64').toString('utf8');
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
+import { getCurrentUserId } from '@/lib/whopIdentity';
+import { getRole } from '@/lib/store';
 
 export async function GET() {
-  const h = await headers();
-
-  const jwt = h.get('x-whop-user-token');
-  let userId: string | null = null;
-
-  if (jwt) {
-    const payload = decodeJwtPayload(jwt);
-    if (payload?.sub) {
-      userId = payload.sub; // Whop user ID
-    }
-  }
+  const userId = getCurrentUserId();
+  const base = { authed: !!userId, userId: userId ?? undefined };
 
   if (!userId) {
-    return Response.json(
-      {
-        authed: false,
-        hasAccess: false,
-        hasAccessLevel: 'no_access',
-        message:
-          'Missing or invalid x-whop-user-token header. Check Whop app settings.',
-      },
-      { headers: { 'cache-control': 'no-store' } }
-    );
+    return Response.json({ ...base, hasAccess: false, accessLevel: 'no_access' }, { headers: { 'content-type': 'application/json; charset=utf-8' } });
   }
 
-  let role: Role | null = getCachedRole(userId);
-  if (!role) {
-    role = await resolveRoleFromWhop(userId);
-    setCachedRole(userId, role);
-  }
+  const rec = await getRole(userId);
+  const accessLevel = rec.role === 'staff' ? 'staff' : 'member';
 
   return Response.json(
     {
-      authed: true,
-      hasAccess: role !== 'no_access',
-      hasAccessLevel: role,
-      userId,
+      ...base,
+      hasAccess: true,
+      accessLevel,
+      role: rec.role,
+      groupId: rec.groupId ?? null
     },
-    { headers: { 'cache-control': 'no-store' } }
+    { headers: { 'content-type': 'application/json; charset=utf-8' } }
   );
 }
