@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { readIdentity } from '@/lib/identity';
+import { getIdentity } from '@/lib/identity';
 
-export function GET() {
-  const status = readIdentity();
-  return NextResponse.json(status, { status: 200 });
+export async function GET(req: Request) {
+  const { userId, userToken } = getIdentity(req);
+  return NextResponse.json({ userId, userToken }, { status: 200 });
 }
